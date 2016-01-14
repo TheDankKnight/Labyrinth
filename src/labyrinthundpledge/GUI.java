@@ -41,10 +41,6 @@ public class GUI extends javax.swing.JApplet {
         //</editor-fold>
         //</editor-fold>
         //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
-        //</editor-fold>
 
         /* Create and display the applet */
         try {
