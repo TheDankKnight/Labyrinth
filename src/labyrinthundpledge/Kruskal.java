@@ -22,7 +22,35 @@ public class Kruskal {
     }
     
     public Field[][] run(){
-        
+        while(!complete()){
+            step();
+        }
         return labyrinth;
+    }
+    
+    public Field[][] step(){
+        if(!complete())
+            stepNoCheck();
+        return labyrinth;
+    }
+    
+    private void stepNoCheck(){
+        int x, y, o; // wallFieldx, wallFieldy, wall Orientation
+        do{
+            x = (int)Math.round(Math.random()*width);
+            y = (int)Math.round(Math.random()*height);
+            o = (int)Math.round(Math.random()*4);
+        }while(!labyrinth[x][y].wall[o]);
+    }
+    
+    private boolean complete(){
+        boolean allOneSet = true;
+        Set compSet = labyrinth[0][0].set;
+        for(int x=0; allOneSet && x<width; ++x){
+            for(int y=0; allOneSet && y<height; ++y){
+                allOneSet = compSet==labyrinth[x][y].set;
+            }
+        }
+        return allOneSet;
     }
 }

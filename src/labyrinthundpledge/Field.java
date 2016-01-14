@@ -10,11 +10,17 @@ package labyrinthundpledge;
  * @author ole
  */
 public class Field {
-    boolean w, n, e, s; // edges
+    enum orientation{
+        n,
+        e,
+        w,
+        s
+    }
+    boolean wall[] = new boolean[4];
+    Set set;
     Field(){
-        w = true;
-        n = true;
-        e = true;
-        s = true;
+        for(int i=0; i<4; ++i)
+            wall[i] = true;
+        set = new Set();
     }
 }
