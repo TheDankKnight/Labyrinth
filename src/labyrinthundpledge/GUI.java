@@ -10,21 +10,29 @@ import java.awt.Color;
 import java.util.ArrayList;
 import java.awt.image.BufferedImage;
 import java.awt.Graphics2D;
-import java.awt.BasicStroke;
+import java.awt.event.*;
+import java.awt.geom.AffineTransform;
 /**
  *
  * @author Ich
  */
-public class GUI extends javax.swing.JFrame {
+public class GUI extends javax.swing.JFrame implements MouseListener{
     int width=8, height=8;
     int panelW, panelH, absPanelW, absPanelH, drawOffX, drawOffY;
-    int mauerW, mauerH;
-    Color bgColor, wallColor = new Color(0,0,0), delColor = new Color(255,0,0);
-    Kruskal gen = new Kruskal();
-    Mauer[] borderN = gen.borderN, borderE = gen.borderE, borderS = gen.borderS, borderW=gen.borderW;
-    Kasten[][] kasten = gen.getKasten();
-    ArrayList<Mauer> borderMauern = gen.borderMauern, festeMauern = gen.festeMauern;
+    int feldW, feldH;
+    Color bgColor, wallColor = new Color(0,0,0), delColor = new Color(255,0,0), playerColor = new Color(70,70,70);
+    Kruskal gen;
+    Mauer[] borderN, borderE, borderS, borderW;
+    Kasten[][] kasten;
+    ArrayList<Mauer> borderMauern, festeMauern;
     BufferedImage backBuffer;
+    boolean stop=false;
+    boolean genOnlyDrawEnd=false;
+    
+    Player player;
+    boolean spielerSetzen = false;
+    boolean walls[][][];
+    BufferedImage playerImage[];
     /**
      * Creates new form GUI
      */
@@ -34,7 +42,6 @@ public class GUI extends javax.swing.JFrame {
         absPanelH = drawingPanel.getHeight();
         bgColor = drawingPanel.getBackground();
         recalcProportions();
-        btOKActionPerformed(null);
     }
 
     /**
@@ -57,7 +64,11 @@ public class GUI extends javax.swing.JFrame {
         btResetField = new javax.swing.JButton();
         btRunGenerator = new javax.swing.JButton();
         btStepGenerator = new javax.swing.JButton();
+        cbGenRunDraw = new javax.swing.JCheckBox();
         btOK = new javax.swing.JButton();
+        jPanel1 = new javax.swing.JPanel();
+        jLabel1 = new javax.swing.JLabel();
+        tgDavisSetzen = new javax.swing.JToggleButton();
         drawingPanel = new javax.swing.JPanel();
 
         jButton1.setText("jButton1");
@@ -75,7 +86,7 @@ public class GUI extends javax.swing.JFrame {
 
         tfHeight.setText("8");
 
-        generierenOptions.setBackground(new java.awt.Color(210, 210, 210));
+        generierenOptions.setBackground(new java.awt.Color(190, 190, 190));
         generierenOptions.setToolTipText("");
 
         jLabel4.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
@@ -103,19 +114,28 @@ public class GUI extends javax.swing.JFrame {
             }
         });
 
+        cbGenRunDraw.setBackground(new java.awt.Color(190, 190, 190));
+        cbGenRunDraw.setText("nur Ende malen");
+        cbGenRunDraw.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                cbGenRunDrawActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout generierenOptionsLayout = new javax.swing.GroupLayout(generierenOptions);
         generierenOptions.setLayout(generierenOptionsLayout);
         generierenOptionsLayout.setHorizontalGroup(
             generierenOptionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(generierenOptionsLayout.createSequentialGroup()
                 .addGroup(generierenOptionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(generierenOptionsLayout.createSequentialGroup()
                         .addContainerGap()
                         .addGroup(generierenOptionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(btStepGenerator, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(btRunGenerator, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(btResetField, javax.swing.GroupLayout.DEFAULT_SIZE, 77, Short.MAX_VALUE)))
-                    .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(btResetField, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btStepGenerator, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(cbGenRunDraw, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap())
         );
         generierenOptionsLayout.setVerticalGroup(
@@ -126,8 +146,11 @@ public class GUI extends javax.swing.JFrame {
                 .addComponent(btResetField)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btRunGenerator)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(btStepGenerator))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(cbGenRunDraw)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btStepGenerator)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         btOK.setText("OK");
@@ -137,6 +160,40 @@ public class GUI extends javax.swing.JFrame {
             }
         });
 
+        jPanel1.setBackground(new java.awt.Color(190, 190, 190));
+
+        jLabel1.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
+        jLabel1.setForeground(new java.awt.Color(73, 105, 121));
+        jLabel1.setText("Lösen:");
+
+        tgDavisSetzen.setText("Spieler Setzen");
+        tgDavisSetzen.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                tgSpielerSetzen(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
+        jPanel1.setLayout(jPanel1Layout);
+        jPanel1Layout.setHorizontalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addComponent(jLabel1)
+                .addGap(0, 0, Short.MAX_VALUE))
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(tgDavisSetzen, javax.swing.GroupLayout.DEFAULT_SIZE, 103, Short.MAX_VALUE)
+                .addContainerGap())
+        );
+        jPanel1Layout.setVerticalGroup(
+            jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanel1Layout.createSequentialGroup()
+                .addComponent(jLabel1)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(tgDavisSetzen)
+                .addGap(0, 57, Short.MAX_VALUE))
+        );
+
         javax.swing.GroupLayout optionsLayout = new javax.swing.GroupLayout(options);
         options.setLayout(optionsLayout);
         optionsLayout.setHorizontalGroup(
@@ -144,10 +201,6 @@ public class GUI extends javax.swing.JFrame {
             .addGroup(optionsLayout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, optionsLayout.createSequentialGroup()
-                        .addGap(10, 10, 10)
-                        .addComponent(btOK, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addContainerGap())
                     .addComponent(generierenOptions, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addGroup(optionsLayout.createSequentialGroup()
                         .addGroup(optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -156,7 +209,12 @@ public class GUI extends javax.swing.JFrame {
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(tfHeight, javax.swing.GroupLayout.DEFAULT_SIZE, 43, Short.MAX_VALUE)
-                            .addComponent(tfWidth)))))
+                            .addComponent(tfWidth)))
+                    .addGroup(optionsLayout.createSequentialGroup()
+                        .addGap(10, 10, 10)
+                        .addComponent(btOK, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                        .addContainerGap())
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
         );
         optionsLayout.setVerticalGroup(
             optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -171,9 +229,11 @@ public class GUI extends javax.swing.JFrame {
                     .addComponent(tfHeight, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btOK)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGap(18, 18, 18)
                 .addComponent(generierenOptions, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(107, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         drawingPanel.setBackground(new java.awt.Color(255, 255, 255));
@@ -187,11 +247,11 @@ public class GUI extends javax.swing.JFrame {
         drawingPanel.setLayout(drawingPanelLayout);
         drawingPanelLayout.setHorizontalGroup(
             drawingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 277, Short.MAX_VALUE)
+            .addGap(0, 527, Short.MAX_VALUE)
         );
         drawingPanelLayout.setVerticalGroup(
             drawingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 0, Short.MAX_VALUE)
+            .addGap(0, 376, Short.MAX_VALUE)
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -216,23 +276,31 @@ public class GUI extends javax.swing.JFrame {
         Graphics g = drawingPanel.getGraphics();
         g.setColor(delColor);
         if(m.getOrientation()==Mauer.richtungen.horizontal){
-            g.drawLine(drawOffX+m.xpos*mauerW, drawOffY+m.ypos*mauerH, drawOffX+(m.xpos+1)*mauerW, drawOffY+m.ypos*mauerH);
+            g.drawLine(drawOffX+m.xpos*feldW, drawOffY+m.ypos*feldH, drawOffX+(m.xpos+1)*feldW, drawOffY+m.ypos*feldH);
         } else {
-            g.drawLine(drawOffX+m.xpos*mauerW, drawOffY+m.ypos*mauerH, drawOffX+m.xpos*mauerW, drawOffY+(m.ypos+1)*mauerH);
+            g.drawLine(drawOffX+m.xpos*feldW, drawOffY+m.ypos*feldH, drawOffX+m.xpos*feldW, drawOffY+(m.ypos+1)*feldH);
         }
         redraw();
     }
     
     private void btRunGeneratorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btRunGeneratorActionPerformed
-        while(!gen.finished()){
-            deleteMauer(gen.step());
+        while(!gen.finished() && !stop){
+            if(genOnlyDrawEnd){
+                gen.step();
+            } else {
+                deleteMauer(gen.step());
+            }
         }
+        bakeWalls();
+        redraw();
     }//GEN-LAST:event_btRunGeneratorActionPerformed
 
     private void btStepGeneratorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btStepGeneratorActionPerformed
-        if(!gen.finished())
+        if(gen.finished()){
+            bakeWalls();
+        } else {
             deleteMauer(gen.step());
-        redraw();
+        }
     }//GEN-LAST:event_btStepGeneratorActionPerformed
 
     private void btOKActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btOKActionPerformed
@@ -246,11 +314,16 @@ public class GUI extends javax.swing.JFrame {
         absPanelW = drawingPanel.getWidth();
         absPanelH = drawingPanel.getHeight();  
         recalcProportions();
-        redraw();
+        try{
+            redraw();
+        } catch(Exception e){
+            
+        }
     }//GEN-LAST:event_drawingPanelComponentResized
 
     private void btResetFieldActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btResetFieldActionPerformed
-        gen.cleanup();
+        if(gen != null)
+            gen.cleanup();
         gen = new Kruskal(width, height);
         borderMauern = gen.borderMauern;
         festeMauern = gen.festeMauern;
@@ -259,8 +332,48 @@ public class GUI extends javax.swing.JFrame {
         borderS = gen.borderS;
         borderW=gen.borderW;
         kasten = gen.getKasten();
+        walls = null;
         redraw();
     }//GEN-LAST:event_btResetFieldActionPerformed
+
+    private void cbGenRunDrawActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cbGenRunDrawActionPerformed
+        genOnlyDrawEnd = cbGenRunDraw.isSelected();
+    }//GEN-LAST:event_cbGenRunDrawActionPerformed
+
+    private void tgSpielerSetzen(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tgSpielerSetzen
+        spielerSetzen = tgDavisSetzen.isSelected();
+    }//GEN-LAST:event_tgSpielerSetzen
+    
+    private void bakeWalls(){
+        walls = new boolean[width+1][height+1][4];
+        int s = borderMauern.size();
+        Mauer cur;
+        for(int i=0; i<s; ++i){
+            cur = borderMauern.get(i);
+            if(cur.getOrientation() == Mauer.richtungen.horizontal){
+                if(cur.ypos > 0)
+                    walls[cur.xpos][cur.ypos-1][Player.S] = true;
+                walls[cur.xpos][cur.ypos][Player.N] = true;
+            } else {
+                if(cur.xpos > 0)
+                    walls[cur.xpos-1][cur.ypos][Player.E] = true;
+                walls[cur.xpos][cur.ypos][Player.W] = true;
+            }
+        }
+        s = festeMauern.size();
+        for(int i=0; i<s; ++i){
+            cur = festeMauern.get(i);
+            if(cur.getOrientation() == Mauer.richtungen.horizontal){
+                if(cur.ypos > 0)
+                    walls[cur.xpos][cur.ypos-1][Player.S] = true;
+                walls[cur.xpos][cur.ypos][Player.N] = true;
+            } else {
+                if(cur.xpos > 0)
+                    walls[cur.xpos-1][cur.ypos][Player.E] = true;
+                walls[cur.xpos][cur.ypos][Player.W] = true;
+            }
+        }
+    }
     
     private void recalcProportions(){
         backBuffer = new BufferedImage(absPanelW, absPanelH, BufferedImage.TYPE_INT_RGB);
@@ -277,8 +390,67 @@ public class GUI extends javax.swing.JFrame {
             drawOffX = 0;
             drawOffY = (absPanelH-temp)/2;
         }
-        mauerW = panelW/width;
-        mauerH = panelH/height;
+        feldW = panelW/width;
+        feldH = panelH/height;
+        recalcPlayer();
+    }
+    
+    @Override
+    public void mouseClicked(MouseEvent e) {
+        System.err.println("Mouse clicked");
+    }
+
+    @Override
+    public void mousePressed(MouseEvent e) {
+        System.err.println("Mouse pressed");
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        System.err.println("Mouse released, spielerSetzen: " + spielerSetzen);
+        if(walls != null){
+            if(spielerSetzen){
+                int x = calcXInMaze(e.getX());
+                int y = calcYInMaze(e.getY());
+                if(x<=width && y<=height){
+                    Player temp = player;
+                    player = new Player(x, y, walls);
+                    if(temp == null)
+                        recalcPlayer();
+                }
+            }
+        }
+        redraw();
+    }
+
+    private int calcXInMaze(int xOnScreen){
+        int xOff = drawingPanel.getX();
+        xOnScreen -= xOff;
+        xOnScreen -= drawOffX;
+        // Alle Ränder wurden jetzt berücksichtigt
+        if(xOnScreen<0)
+            System.err.println("calcXInMaze gibt wert kleiner als 0 zurück: " + xOnScreen/width);
+        return xOnScreen/width;
+    }
+    
+    private int calcYInMaze(int yOnScreen){
+        int yOff = drawingPanel.getY();
+        yOnScreen -= yOff;
+        yOnScreen -= drawOffY;
+        // Alle Ränder wurden jetzt berücksichtigt
+        if(yOnScreen<0)
+            System.err.println("calcYInMaze gibt wert kleiner als 0 zurück: " + yOnScreen/height);
+        return yOnScreen/height;
+    }
+    
+    @Override
+    public void mouseEntered(MouseEvent e) {
+        
+    }
+
+    @Override
+    public void mouseExited(MouseEvent e) {
+        
     }
     
     private void redraw(){
@@ -291,7 +463,7 @@ public class GUI extends javax.swing.JFrame {
         for(int x=0; x<width; ++x){
             for(int y=0; y<height; ++y){
                 g.setColor(kasten[x][y].feld.color);
-                g.fillRect(drawOffX+kasten[x][y].x*mauerW, drawOffY+kasten[x][y].y*mauerH, mauerW, mauerH);
+                g.fillRect(drawOffX+kasten[x][y].x*feldW, drawOffY+kasten[x][y].y*feldH, feldW, feldH);
             }
         }
         
@@ -302,18 +474,18 @@ public class GUI extends javax.swing.JFrame {
         for(int i=0; i<size; ++i){
             cur = borderMauern.get(i);
             if(cur.getOrientation()==Mauer.richtungen.horizontal){
-                g.drawLine(drawOffX+cur.xpos*mauerW, drawOffY+cur.ypos*mauerH, drawOffX+(cur.xpos+1)*mauerW, drawOffY+cur.ypos*mauerH);
+                g.drawLine(drawOffX+cur.xpos*feldW, drawOffY+cur.ypos*feldH, drawOffX+(cur.xpos+1)*feldW, drawOffY+cur.ypos*feldH);
             } else {
-                g.drawLine(drawOffX+cur.xpos*mauerW, drawOffY+cur.ypos*mauerH, drawOffX+cur.xpos*mauerW, drawOffY+(cur.ypos+1)*mauerH);
+                g.drawLine(drawOffX+cur.xpos*feldW, drawOffY+cur.ypos*feldH, drawOffX+cur.xpos*feldW, drawOffY+(cur.ypos+1)*feldH);
             }
         }      
         for(int x=0; x<width; ++x){
-            g.drawLine(drawOffX+borderN[x].xpos*mauerW, drawOffY+borderN[x].ypos*mauerH, drawOffX+(borderN[x].xpos+1)*mauerW, drawOffY+borderN[x].ypos*mauerH);
-            g.drawLine(drawOffX+borderS[x].xpos*mauerW, drawOffY+borderS[x].ypos*mauerH, drawOffX+(borderS[x].xpos+1)*mauerW, drawOffY+borderS[x].ypos*mauerH);
+            g.drawLine(drawOffX+borderN[x].xpos*feldW, drawOffY+borderN[x].ypos*feldH, drawOffX+(borderN[x].xpos+1)*feldW, drawOffY+borderN[x].ypos*feldH);
+            g.drawLine(drawOffX+borderS[x].xpos*feldW, drawOffY+borderS[x].ypos*feldH, drawOffX+(borderS[x].xpos+1)*feldW, drawOffY+borderS[x].ypos*feldH);
         }
         for(int y=0; y<height; ++y){
-            g.drawLine(drawOffX+borderE[y].xpos*mauerW, drawOffY+borderE[y].ypos*mauerH, drawOffX+borderE[y].xpos*mauerW, drawOffY+(borderE[y].ypos+1)*mauerH);
-            g.drawLine(drawOffX+borderW[y].xpos*mauerW, drawOffY+borderW[y].ypos*mauerH, drawOffX+borderW[y].xpos*mauerW, drawOffY+(borderW[y].ypos+1)*mauerH);
+            g.drawLine(drawOffX+borderE[y].xpos*feldW, drawOffY+borderE[y].ypos*feldH, drawOffX+borderE[y].xpos*feldW, drawOffY+(borderE[y].ypos+1)*feldH);
+            g.drawLine(drawOffX+borderW[y].xpos*feldW, drawOffY+borderW[y].ypos*feldH, drawOffX+borderW[y].xpos*feldW, drawOffY+(borderW[y].ypos+1)*feldH);
         }
         // feste Wände
         size = festeMauern.size();
@@ -326,15 +498,51 @@ public class GUI extends javax.swing.JFrame {
                 e.printStackTrace();
             }*/
             if(cur.getOrientation()==Mauer.richtungen.horizontal){
-                g.drawLine(drawOffX+cur.xpos*mauerW, drawOffY+cur.ypos*mauerH, drawOffX+(cur.xpos+1)*mauerW, drawOffY+cur.ypos*mauerH);
+                g.drawLine(drawOffX+cur.xpos*feldW, drawOffY+cur.ypos*feldH, drawOffX+(cur.xpos+1)*feldW, drawOffY+cur.ypos*feldH);
             } else {
-                g.drawLine(drawOffX+cur.xpos*mauerW, drawOffY+cur.ypos*mauerH, drawOffX+cur.xpos*mauerW, drawOffY+(cur.ypos+1)*mauerH);
+                g.drawLine(drawOffX+cur.xpos*feldW, drawOffY+cur.ypos*feldH, drawOffX+cur.xpos*feldW, drawOffY+(cur.ypos+1)*feldH);
             }
         } 
+        
+        drawPlayer(g);
         
         drawingPanel.getGraphics().drawImage(backBuffer, 0, 0, null);
     }
     
+    public void recalcPlayer(){
+        if(player == null)
+            return;
+        playerImage = new BufferedImage[4];
+        for(int i=0; i<4; ++i)
+            playerImage[i] = new BufferedImage(feldW, feldH, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D g = playerImage[0].createGraphics();
+        g.setColor(playerColor);
+        int triangleX[] = new int[3], triangleY[] = new int[3];
+        triangleX[0] = feldW/4;
+        triangleY[0] = (int)(feldH/1.2f);
+        triangleX[1] = feldW/2;
+        triangleY[1] = feldH-triangleY[0];
+        triangleX[2] = 0;
+        triangleY[2] = feldH-triangleY[0];
+        
+        g.fillPolygon(triangleX, triangleY, 3);
+        
+        
+        AffineTransform transform = new AffineTransform();
+        for(int i=1; i<4; ++i){
+            transform.rotate(Math.PI/2); // 90°
+            g = playerImage[i].createGraphics();
+            g.drawImage(playerImage[0], transform, null);
+        }
+    }
+    
+    public void drawPlayer(Graphics2D g){
+        if(player == null)
+            return;
+        System.err.println("Player: " + player);
+        g.drawImage(playerImage[player.getOrientation()], player.getX(), player.getY(), null);
+        
+    }
     /**
      * @param args the command line arguments
      */
@@ -375,14 +583,19 @@ public class GUI extends javax.swing.JFrame {
     private javax.swing.JButton btResetField;
     private javax.swing.JButton btRunGenerator;
     private javax.swing.JButton btStepGenerator;
+    private javax.swing.JCheckBox cbGenRunDraw;
     private javax.swing.JPanel drawingPanel;
     private javax.swing.JPanel generierenOptions;
     private javax.swing.JButton jButton1;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel options;
     private javax.swing.JTextField tfHeight;
     private javax.swing.JTextField tfWidth;
+    private javax.swing.JToggleButton tgDavisSetzen;
     // End of variables declaration//GEN-END:variables
+
 }

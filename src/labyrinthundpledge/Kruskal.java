@@ -58,7 +58,7 @@ public class Kruskal {
                     borderN[x] = hMauern[x][y];
                 }
                 //Farbe für Feld berechenen:
-                Kasten temp = new Kasten(x,y, Color.getHSBColor((x+y*width)*colorDif, 0.4f, 0.8f));
+                Kasten temp = new Kasten(x,y, Color.getHSBColor((x+y*width)*colorDif, .4f, .8f));
                 kasten[x][y] = temp;
                 vMauern[x][y].setRegion2(temp);
                 hMauern[x][y].setRegion2(temp);
