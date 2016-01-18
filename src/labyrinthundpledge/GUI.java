@@ -37,6 +37,7 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
      * Creates new form GUI
      */
     public GUI() {
+        addMouseListener(this);
         initComponents();
         absPanelW = drawingPanel.getWidth();
         absPanelH = drawingPanel.getHeight();
@@ -345,7 +346,7 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     }//GEN-LAST:event_tgSpielerSetzen
     
     private void bakeWalls(){
-        walls = new boolean[width+1][height+1][4];
+        walls = new boolean[width][height][4];
         int s = borderMauern.size();
         Mauer cur;
         for(int i=0; i<s; ++i){
@@ -373,6 +374,16 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                 walls[cur.xpos][cur.ypos][Player.W] = true;
             }
         }
+        // Ränder in's Array schreiben:
+        for(int x=0; x<width; ++x){
+            walls[x][0][Player.N] = true;
+            walls[x][height-1][Player.S] = true;
+        }
+        for(int y=0; y<height; ++y){
+            walls[0][y][Player.W] = true;
+            walls[width-1][y][Player.E] = true;
+        }
+        walls[width-1][height-1][Player.E] = false; 
     }
     
     private void recalcProportions(){
@@ -397,21 +408,12 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     
     @Override
     public void mouseClicked(MouseEvent e) {
-        System.err.println("Mouse clicked");
-    }
-
-    @Override
-    public void mousePressed(MouseEvent e) {
-        System.err.println("Mouse pressed");
-    }
-
-    @Override
-    public void mouseReleased(MouseEvent e) {
-        System.err.println("Mouse released, spielerSetzen: " + spielerSetzen);
+        System.err.println("Mouse clicked: " + spielerSetzen);
         if(walls != null){
             if(spielerSetzen){
                 int x = calcXInMaze(e.getX());
                 int y = calcYInMaze(e.getY());
+                System.err.println("setPayer at (" + x + "|" + y + ")");
                 if(x<=width && y<=height){
                     Player temp = player;
                     player = new Player(x, y, walls);
@@ -423,14 +425,25 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         redraw();
     }
 
+    @Override
+    public void mousePressed(MouseEvent e) {
+        System.err.println("Mouse pressed");
+    }
+
+    @Override
+    public void mouseReleased(MouseEvent e) {
+        System.err.println("Mouser released");
+    }
+
     private int calcXInMaze(int xOnScreen){
         int xOff = drawingPanel.getX();
         xOnScreen -= xOff;
+        
         xOnScreen -= drawOffX;
         // Alle Ränder wurden jetzt berücksichtigt
         if(xOnScreen<0)
             System.err.println("calcXInMaze gibt wert kleiner als 0 zurück: " + xOnScreen/width);
-        return xOnScreen/width;
+        return xOnScreen/feldW;
     }
     
     private int calcYInMaze(int yOnScreen){
@@ -440,7 +453,7 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         // Alle Ränder wurden jetzt berücksichtigt
         if(yOnScreen<0)
             System.err.println("calcYInMaze gibt wert kleiner als 0 zurück: " + yOnScreen/height);
-        return yOnScreen/height;
+        return yOnScreen/feldH;
     }
     
     @Override
@@ -468,6 +481,18 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         }
         
         // Wände
+        if(walls == null)
+            drawDynamicWalls(g);
+        else
+            drawStaticWalls(g);
+        
+        
+        drawPlayer(g);
+        
+        drawingPanel.getGraphics().drawImage(backBuffer, 0, 0, null);
+    }
+    
+    public void drawDynamicWalls(Graphics2D g){
         g.setColor(wallColor);
         int size = borderMauern.size();
         Mauer cur;
@@ -503,10 +528,23 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                 g.drawLine(drawOffX+cur.xpos*feldW, drawOffY+cur.ypos*feldH, drawOffX+cur.xpos*feldW, drawOffY+(cur.ypos+1)*feldH);
             }
         } 
-        
-        drawPlayer(g);
-        
-        drawingPanel.getGraphics().drawImage(backBuffer, 0, 0, null);
+    }
+    
+    public void drawStaticWalls(Graphics2D g){
+        System.err.println("Drawing stati walls");
+        g.setColor(wallColor);
+        for(int x=0; x<width; ++x){
+            for(int y=0; y<height; ++y){
+                if(walls[x][y][Player.N])
+                    g.drawLine(drawOffX+x*feldW, drawOffY+y*feldH, drawOffX+(x+1)*feldW, drawOffY+y*feldH);
+                if(walls[x][y][Player.E])
+                    g.drawLine(drawOffX+(x+1)*feldW, drawOffY+y*feldH, drawOffX+(x+1)*feldW, drawOffY+(y+1)*feldH);
+                if(walls[x][y][Player.S])
+                    g.drawLine(drawOffX+x*feldW, drawOffY+(y+1)*feldH, drawOffX+(x+1)*feldW, drawOffY+(y+1)*feldH);
+                if(walls[x][y][Player.W])
+                    g.drawLine(drawOffX+x*feldW, drawOffY+y*feldH, drawOffX+x*feldW, drawOffY+(y+1)*feldH);
+            }
+        }
     }
     
     public void recalcPlayer(){
