@@ -16,7 +16,6 @@ public class Player {
     private int x, y;
     private int o; // N = 0, E = 1, S = 2, W = 3
     private int turnCount;
-    private boolean following;
     private boolean turning;
     
     Player(int x, int y, int startingOrientation, boolean walls[][][]){
@@ -33,7 +32,6 @@ public class Player {
     Player(boolean walls[][][]){
         this.walls = walls;
         turnCount = 0;
-        following = false;
     }
     
     public void setPos(int x, int y){
@@ -66,7 +64,11 @@ public class Player {
     }
     
     public void step(){
-        if(following){
+        if(x >= walls.length || y >= walls[0].length){
+            System.err.println("Out of Bounds: (" + x + "|" + y + ") while max is (" + walls.length + "|" + walls[0].length + ")");
+            return;
+        }
+        if(turnCount != 0){
             if(!turning){
                 if(!walls[x][y][getRight()]){ // immer der rechten Wand folgen
                     right();
@@ -93,7 +95,6 @@ public class Player {
                 move();
             } else {
                 left(); // wand ist jetzt rechts von uns
-                following = true;
             }
         }
     }
@@ -139,6 +140,6 @@ public class Player {
     
     
     public String toString(){
-        return "(" + x + "|" + y + "), tc: " + turnCount + ", o: " + o + ((turning)? ", turning" : ", not turning") + ((following)? ", following" : ", not following");
+        return "(" + x + "|" + y + "), tc: " + turnCount + ", o: " + o + ((turning)? ", turning" : ", not turning");
     }
 }

@@ -16,11 +16,22 @@ import java.awt.geom.AffineTransform;
  *
  * @author Ich
  */
+class Position{
+    int x,y;
+    Position(){
+        
+    }
+    Position(int x, int y){
+        this.x = x;
+        this.y = y;
+    }
+}
+
 public class GUI extends javax.swing.JFrame implements MouseListener{
     int width=8, height=8;
     int panelW, panelH, absPanelW, absPanelH, drawOffX, drawOffY;
     int feldW, feldH;
-    Color bgColor, wallColor = new Color(0,0,0), delColor = new Color(255,0,0), playerColor = new Color(70,70,70);
+    Color bgColor, wallColor = new Color(0,0,0), delColor = new Color(255,0,0), playerColor, playerTraceColor;
     Kruskal gen;
     Mauer[] borderN, borderE, borderS, borderW;
     Kasten[][] kasten;
@@ -33,6 +44,9 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     boolean spielerSetzen = false;
     boolean walls[][][];
     BufferedImage playerImage[];
+    ArrayList<Position> playerTrace = new ArrayList();
+    
+    int pledgeRunDelay;
     /**
      * Creates new form GUI
      */
@@ -43,6 +57,8 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         absPanelH = drawingPanel.getHeight();
         bgColor = drawingPanel.getBackground();
         recalcProportions();
+        slPledgeRunDelay.setMinimum(0);
+        slPledgeRunDelay.setMaximum(500); // 1s
     }
 
     /**
@@ -55,6 +71,7 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     private void initComponents() {
 
         jButton1 = new javax.swing.JButton();
+        jButton2 = new javax.swing.JButton();
         options = new javax.swing.JPanel();
         jLabel2 = new javax.swing.JLabel();
         tfWidth = new javax.swing.JTextField();
@@ -62,7 +79,6 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         tfHeight = new javax.swing.JTextField();
         generierenOptions = new javax.swing.JPanel();
         jLabel4 = new javax.swing.JLabel();
-        btResetField = new javax.swing.JButton();
         btRunGenerator = new javax.swing.JButton();
         btStepGenerator = new javax.swing.JButton();
         cbGenRunDraw = new javax.swing.JCheckBox();
@@ -70,9 +86,16 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         jPanel1 = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         tgDavisSetzen = new javax.swing.JToggleButton();
+        btRunPledge = new javax.swing.JButton();
+        btStepPledge = new javax.swing.JButton();
+        slPledgeRunDelay = new javax.swing.JSlider();
+        jLabel5 = new javax.swing.JLabel();
+        btResetField = new javax.swing.JButton();
         drawingPanel = new javax.swing.JPanel();
 
         jButton1.setText("jButton1");
+
+        jButton2.setText("Step");
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -93,13 +116,6 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         jLabel4.setFont(new java.awt.Font("Tahoma", 1, 11)); // NOI18N
         jLabel4.setForeground(new java.awt.Color(73, 105, 121));
         jLabel4.setText("Generieren:");
-
-        btResetField.setText("Reset");
-        btResetField.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                btResetFieldActionPerformed(evt);
-            }
-        });
 
         btRunGenerator.setText("Run");
         btRunGenerator.addActionListener(new java.awt.event.ActionListener() {
@@ -134,7 +150,6 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                         .addContainerGap()
                         .addGroup(generierenOptionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addComponent(btRunGenerator, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(btResetField, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(btStepGenerator, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(cbGenRunDraw, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                 .addContainerGap())
@@ -144,14 +159,12 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
             .addGroup(generierenOptionsLayout.createSequentialGroup()
                 .addComponent(jLabel4)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(btResetField)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btRunGenerator)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(cbGenRunDraw)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btStepGenerator)
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addGap(0, 10, Short.MAX_VALUE))
         );
 
         btOK.setText("OK");
@@ -174,6 +187,30 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
             }
         });
 
+        btRunPledge.setText("Run");
+        btRunPledge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btRunPledgeActionPerformed(evt);
+            }
+        });
+
+        btStepPledge.setText("Step");
+        btStepPledge.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btStepPledgeActionPerformed(evt);
+            }
+        });
+
+        slPledgeRunDelay.setBackground(new java.awt.Color(190, 190, 190));
+        slPledgeRunDelay.setForeground(new java.awt.Color(160, 160, 160));
+        slPledgeRunDelay.addMouseMotionListener(new java.awt.event.MouseMotionAdapter() {
+            public void mouseDragged(java.awt.event.MouseEvent evt) {
+                slPledgeRunDelayMouseDragged(evt);
+            }
+        });
+
+        jLabel5.setText("delay:");
+
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -183,7 +220,14 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                 .addGap(0, 0, Short.MAX_VALUE))
             .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(tgDavisSetzen, javax.swing.GroupLayout.DEFAULT_SIZE, 103, Short.MAX_VALUE)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(tgDavisSetzen, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btRunPledge, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(btStepPledge, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(slPledgeRunDelay, javax.swing.GroupLayout.PREFERRED_SIZE, 0, Short.MAX_VALUE)
+                    .addGroup(jPanel1Layout.createSequentialGroup()
+                        .addComponent(jLabel5)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
@@ -192,8 +236,23 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                 .addComponent(jLabel1)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(tgDavisSetzen)
-                .addGap(0, 57, Short.MAX_VALUE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btRunPledge)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jLabel5)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(slPledgeRunDelay, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(btStepPledge)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
+
+        btResetField.setText("Reset");
+        btResetField.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btResetFieldActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout optionsLayout = new javax.swing.GroupLayout(options);
         options.setLayout(optionsLayout);
@@ -211,11 +270,13 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                         .addGroup(optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(tfHeight, javax.swing.GroupLayout.DEFAULT_SIZE, 43, Short.MAX_VALUE)
                             .addComponent(tfWidth)))
-                    .addGroup(optionsLayout.createSequentialGroup()
+                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, optionsLayout.createSequentialGroup()
                         .addGap(10, 10, 10)
-                        .addComponent(btOK, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addContainerGap())
-                    .addComponent(jPanel1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
+                        .addGroup(optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                            .addComponent(btResetField, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(btOK, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                        .addContainerGap())))
         );
         optionsLayout.setVerticalGroup(
             optionsLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -230,7 +291,9 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
                     .addComponent(tfHeight, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(btOK)
-                .addGap(18, 18, 18)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addComponent(btResetField)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(generierenOptions, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -248,11 +311,11 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         drawingPanel.setLayout(drawingPanelLayout);
         drawingPanelLayout.setHorizontalGroup(
             drawingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 527, Short.MAX_VALUE)
+            .addGap(0, 525, Short.MAX_VALUE)
         );
         drawingPanelLayout.setVerticalGroup(
             drawingPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 376, Short.MAX_VALUE)
+            .addGap(0, 527, Short.MAX_VALUE)
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
@@ -266,8 +329,8 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(options, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
             .addComponent(drawingPanel, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+            .addComponent(options, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
         );
 
         pack();
@@ -293,11 +356,13 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
             }
         }
         bakeWalls();
+        recalcPlayerColor();
         redraw();
     }//GEN-LAST:event_btRunGeneratorActionPerformed
 
     private void btStepGeneratorActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btStepGeneratorActionPerformed
         if(gen.finished()){
+            recalcPlayerColor();
             bakeWalls();
         } else {
             deleteMauer(gen.step());
@@ -334,6 +399,8 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         borderW=gen.borderW;
         kasten = gen.getKasten();
         walls = null;
+        player = null;
+        playerTrace.clear();
         redraw();
     }//GEN-LAST:event_btResetFieldActionPerformed
 
@@ -344,6 +411,36 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     private void tgSpielerSetzen(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_tgSpielerSetzen
         spielerSetzen = tgDavisSetzen.isSelected();
     }//GEN-LAST:event_tgSpielerSetzen
+
+    private void btRunPledgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btRunPledgeActionPerformed
+        if(player == null)
+            return;
+        while(player.getX() < width && player.getY() < height){
+            player.step();
+            playerTrace.add(new Position(player.getX(), player.getY()));
+            try{
+                Thread.sleep(pledgeRunDelay);
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            redraw();
+        }
+    }//GEN-LAST:event_btRunPledgeActionPerformed
+
+    private void btStepPledgeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btStepPledgeActionPerformed
+        if(player==null)
+            return;
+        if(player.getX() < width && player.getY() < height){
+            player.step();
+            playerTrace.add(new Position(player.getX(), player.getY()));
+        } else
+            System.err.println("DONE!");
+        redraw();
+    }//GEN-LAST:event_btStepPledgeActionPerformed
+
+    private void slPledgeRunDelayMouseDragged(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_slPledgeRunDelayMouseDragged
+        pledgeRunDelay = slPledgeRunDelay.getValue();
+    }//GEN-LAST:event_slPledgeRunDelayMouseDragged
     
     private void bakeWalls(){
         walls = new boolean[width][height][4];
@@ -413,16 +510,20 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
             if(spielerSetzen){
                 int x = calcXInMaze(e.getX());
                 int y = calcYInMaze(e.getY());
-                System.err.println("setPayer at (" + x + "|" + y + ")");
-                if(x<=width && y<=height){
-                    Player temp = player;
-                    player = new Player(x, y, walls);
-                    if(temp == null)
-                        recalcPlayer();
+                if( x >= 0 && x < width && y >= 0 && y < height){
+                    System.err.println("setPayer at (" + x + "|" + y + ")");
+                    if(x<=width && y<=height){
+                        Player temp = player;
+                        player = new Player(x, y, walls);
+                        playerTrace.clear();
+                        playerTrace.add(new Position(player.getX(), player.getY()));
+                        if(temp == null)
+                            recalcPlayer();
+                    }
+                    redraw();
                 }
             }
         }
-        redraw();
     }
 
     @Override
@@ -448,8 +549,7 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     
     private int calcYInMaze(int yOnScreen){
         int yOff = drawingPanel.getY();
-        yOnScreen -= yOff;
-        yOnScreen -= drawOffY;
+        yOnScreen -= yOff -drawOffY + feldH/2;
         // Alle Ränder wurden jetzt berücksichtigt
         if(yOnScreen<0)
             System.err.println("calcYInMaze gibt wert kleiner als 0 zurück: " + yOnScreen/height);
@@ -553,33 +653,58 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
         playerImage = new BufferedImage[4];
         for(int i=0; i<4; ++i)
             playerImage[i] = new BufferedImage(feldW, feldH, BufferedImage.TYPE_INT_ARGB);
-        Graphics2D g = playerImage[0].createGraphics();
+        Graphics2D g  = playerImage[0].createGraphics();
         g.setColor(playerColor);
         int triangleX[] = new int[3], triangleY[] = new int[3];
-        triangleX[0] = feldW/4;
-        triangleY[0] = (int)(feldH/1.2f);
-        triangleX[1] = feldW/2;
+        triangleX[0] = feldW/2;
+        triangleY[0] = (feldH/5);
+        triangleX[1] = (int)(feldW*0.8f);
         triangleY[1] = feldH-triangleY[0];
-        triangleX[2] = 0;
+        triangleX[2] = (int)(feldW*0.2f);
         triangleY[2] = feldH-triangleY[0];
         
         g.fillPolygon(triangleX, triangleY, 3);
         
-        
-        AffineTransform transform = new AffineTransform();
+        AffineTransform trans;
         for(int i=1; i<4; ++i){
-            transform.rotate(Math.PI/2); // 90°
+            trans = AffineTransform.getRotateInstance(i*Math.PI/2, feldW/2, feldH/2);
             g = playerImage[i].createGraphics();
-            g.drawImage(playerImage[0], transform, null);
+            g.drawImage(playerImage[0], trans, null);
         }
+        
+    }
+    
+    public void recalcPlayerColor(){
+        Color col = kasten[0][0].feld.color;
+        int r = col.getRed();
+        int g = col.getGreen();
+        int b = col.getBlue();
+        playerColor = new Color(r/2, g/2, b/2);
+        playerTraceColor = new Color(Math.min(255, 2*r/3),Math.min(255, 2*g/3),Math.min(255, 2*b/3));
     }
     
     public void drawPlayer(Graphics2D g){
         if(player == null)
             return;
         System.err.println("Player: " + player);
-        g.drawImage(playerImage[player.getOrientation()], player.getX(), player.getY(), null);
-        
+        //Spieler Spuren malen
+        if(playerTrace.isEmpty()){
+            System.err.println("PlayerTrace leer obwohl player existiert.");
+            return;
+        }
+        int s = playerTrace.size();
+        Position last = playerTrace.get(0);
+        Position cur;
+        g.setColor(playerTraceColor);
+        for(int i=1; i<s; ++i){
+            cur = playerTrace.get(i);
+            g.drawLine(drawOffX + feldW*last.x+feldW/2, drawOffY + feldH*last.y+feldH/2, drawOffX + feldW*cur.x+feldW/2, drawOffY + feldH*cur.y+feldH/2);
+            last = cur;
+        }
+
+        //Spieler malen
+        g.drawImage(playerImage[player.getOrientation()], drawOffX + feldW*player.getX(), drawOffY + feldH*player.getY(), null);
+        //g.fillRect(drawOffX + feldW*player.getX()+(int)(0.1f*feldW), drawOffY + feldH*player.getY()+(int)(0.1f*feldH), (int)(0.8f*feldW), (int)(0.8f*feldH));
     }
     /**
      * @param args the command line arguments
@@ -620,17 +745,22 @@ public class GUI extends javax.swing.JFrame implements MouseListener{
     private javax.swing.JButton btOK;
     private javax.swing.JButton btResetField;
     private javax.swing.JButton btRunGenerator;
+    private javax.swing.JButton btRunPledge;
     private javax.swing.JButton btStepGenerator;
+    private javax.swing.JButton btStepPledge;
     private javax.swing.JCheckBox cbGenRunDraw;
     private javax.swing.JPanel drawingPanel;
     private javax.swing.JPanel generierenOptions;
     private javax.swing.JButton jButton1;
+    private javax.swing.JButton jButton2;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel options;
+    private javax.swing.JSlider slPledgeRunDelay;
     private javax.swing.JTextField tfHeight;
     private javax.swing.JTextField tfWidth;
     private javax.swing.JToggleButton tgDavisSetzen;
